@@ -37,7 +37,7 @@ Since this project is built as a single file, there is no build process or packa
 ### Installation
 1.  **Clone the repository:**
     ```bash
-    git clone https://aakashjamali91.github.io/Scaleyourpotential.Deltabytes/
+    https://aakashjamali91.github.io/Scaleyourpotential.Deltabytes/
     ```
 2.  **Run the project:**
     Simply open `index.html` in your browser.
