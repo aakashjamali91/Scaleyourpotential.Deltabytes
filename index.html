@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaByte - High Performance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { 
+                        'brand-black': '#0F172A', 
+                        'brand-accent': '#6366f1',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        'gradient-x': {
+                            '0%, 100%': { 'background-position': '0% 50%' },
+                            '50%': { 'background-position': '100% 50%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        body { 
+            -webkit-font-smoothing: antialiased; 
+            background-color: #F8FAFC;
+            overflow-x: hidden;
+        }
+
+        /* --- 1. Optimized Animated Gradient Background --- 
+           Uses background-position instead of moving DOM elements. 
+           Zero Lag. 
+        */
+        .mesh-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient-x 15s ease infinite;
+            opacity: 0.08; /* Subtle tint */
+        }
+
+        /* --- 2. GPU Accelerated Glass Cards --- 
+           CSS-only hover effects. No JS calculations.
+        */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px); /* Moderate blur for performance */
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                        box-shadow 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            /* Force GPU acceleration */
+            transform: translate3d(0,0,0); 
+            will-change: transform;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+                        0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: #6366f1;
+        }
+
+        /* --- 3. Scroll Reveal --- */
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+            will-change: opacity, transform;
+        }
+        .reveal-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- 4. Smooth Accordion --- */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease;
+            opacity: 0;
+        }
+        .accordion-item:hover .accordion-content {
+            max-height: 150px;
+            opacity: 1;
+        }
+
+        /* Router Animations */
+        .page-section { display: none; }
+        .page-section.active-page { 
+            display: block; 
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Mobile Menu */
+        #mobile-menu {
+            transition: transform 0.3s ease-in-out;
+            transform: translateY(-120%);
+        }
+        #mobile-menu.open { transform: translateY(0%); }
+    </style>
+</head>
+<body class="text-slate-800 font-sans">
+
+    <div class="mesh-bg"></div>
+
+    <header class="fixed top-10 w-[90%] z-50 bg-white/80 left-1/2 -translate-x-1/2 backdrop-blur-md border-b border-radius-20px rounded-3xl border-white/20 transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="navigateTo('home')">
+                <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
+                    <i data-feather="hexagon" class="w-4 h-4"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-slate-900">DeltaByte</span>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8">
+                <button onclick="navigateTo('home')" class="text-sm font-medium text-slate-600 hover:text-black transition-colors">Home</button>
+                <button onclick="navigateTo('toolkit')" class="text-sm font-medium text-slate-600 hover:text-black transition-colors">Toolkit</button>
+                <button onclick="navigateTo('process')" class="text-sm font-medium text-slate-600 hover:text-black transition-colors">Process</button>
+                <button onclick="navigateTo('intake')" class="bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-brand-accent transition-colors shadow-lg shadow-indigo-500/20">Get Started</button>
+            </nav>
+
+            <button class="md:hidden p-2 text-slate-600" onclick="toggleMobileMenu()">
+                <i data-feather="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <div id="mobile-menu" class="absolute rounded-3xl top-10 left-0 w-full bg-white shadow-xl flex flex-col p-6 gap-4 md:hidden -z-10 border-b">
+            <button onclick="navigateTo('home'); toggleMobileMenu()" class="text-left py-3 border-b font-medium">Home</button>
+            <button onclick="navigateTo('toolkit'); toggleMobileMenu()" class="text-left py-3 border-b font-medium">Toolkit</button>
+            <button onclick="navigateTo('process'); toggleMobileMenu()" class="text-left py-3 border-b font-medium">Process</button>
+            <button onclick="navigateTo('intake'); toggleMobileMenu()" class="text-left py-3 font-semibold text-brand-accent">Complete Intake</button>
+        </div>
+    </header>
+
+    <div class="h-20"></div>
+
+    <main id="home" class="page-section active-page">
+        
+        <section class="min-h-[85vh] flex flex-col justify-center p-6 md:p-16 relative overflow-hidden">
+            <div class="max-w-7xl mx-auto w-full z-10">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-semibold tracking-wide uppercase text-indigo-600 mb-8 reveal-on-scroll">
+                    <span class="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span> Performance Update
+                </div>
+                
+                <h1 class="text-5xl md:text-8xl leading-[0.9] font-bold tracking-tight text-slate-900 mb-8 reveal-on-scroll" style="transition-delay: 0.1s;">
+                    Scale your<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">potential.</span>
+                </h1>
+
+                <p class="text-lg md:text-2xl text-slate-500 max-w-2xl mb-12 leading-relaxed reveal-on-scroll" style="transition-delay: 0.2s;">
+                    The all-in-one platform engineered for speed, clarity, and automation.
+                </p>
+
+                <div class="flex flex-wrap gap-4 reveal-on-scroll" style="transition-delay: 0.3s;">
+                    <button onclick="navigateTo('intake')" class="bg-slate-900 text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-brand-accent hover:-translate-y-1 transition-all duration-300 shadow-xl">
+                        Start Now
+                    </button>
+                    <button onclick="navigateTo('process')" class="bg-white text-slate-900 border border-slate-200 px-8 py-4 rounded-full text-lg font-medium hover:bg-slate-50 hover:border-slate-300 transition-all duration-300">
+                        View Demo
+                    </button>
+                </div>
+            </div>
+            
+            <div class="absolute right-0 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none hidden lg:block animate-float">
+                <svg width="500" height="500" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#6366F1" d="M44.7,-76.4C58.9,-69.2,71.8,-59.1,79.6,-46.6C87.4,-34,90.2,-19.1,87.6,-5.3C85,8.5,77,21.2,68.3,32.7C59.6,44.2,50.2,54.6,39.1,62.1C28,69.6,15.2,74.2,1.3,72C-12.6,69.8,-27.1,60.8,-39.5,52.2C-51.9,43.6,-62.2,35.4,-70.5,23.8C-78.8,12.2,-85.1,-2.8,-82.1,-16.8C-79.1,-30.8,-66.8,-43.8,-53.4,-51.3C-40,-58.8,-25.5,-60.8,-11.8,-62.9C1.9,-65,15.6,-67.2,30.5,-83.6" transform="translate(100 100)" />
+                </svg>
+            </div>
+        </section>
+
+        <section class="py-24 px-6 relative">
+            <div class="max-w-6xl mx-auto glass-card rounded-[2.5rem] p-12 md:p-20 text-center cursor-pointer group" onclick="navigateTo('toolkit')">
+                <h3 class="text-3xl md:text-5xl font-bold mb-6 group-hover:text-brand-accent transition-colors">The Toolkit</h3>
+                <p class="text-lg text-slate-500 mb-8">Access the complete suite of dashboards.</p>
+                <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-slate-100 group-hover:bg-brand-accent group-hover:text-white transition-colors">
+                    <i data-feather="arrow-right" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-24 px-6 md:px-16 bg-white/50">
+            <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
+                <div class="">
+                    <h2 class="text-4xl md:text-6xl font-bold mb-8 tracking-tight text-slate-900 reveal-on-scroll">Unlock efficiency.</h2>
+                    <p class="text-lg text-slate-500 leading-relaxed reveal-on-scroll">
+                        Our proprietary models don't just organize data; they predict your next move. Experience the flow state of business management.
+                    </p>
+                </div>
+                
+                <div class="space-y-4 reveal-on-scroll">
+                    <div class="accordion-item border-b border-slate-200 cursor-pointer group">
+                        <div class="py-6 flex justify-between items-center">
+                            <span class="text-xl font-medium">Automated Intelligence</span>
+                            <i data-feather="chevron-down" class="text-slate-400 group-hover:text-brand-accent transition-colors"></i>
+                        </div>
+                        <div class="accordion-content">
+                            <p class="pb-6 text-slate-600 leading-relaxed">Leverage our AI models to automate 40% of daily admin tasks immediately upon setup.</p>
+                        </div>
+                    </div>
+                    <div class="accordion-item border-b border-slate-200 cursor-pointer group">
+                        <div class="py-6 flex justify-between items-center">
+                            <span class="text-xl font-medium">Predictive Analytics</span>
+                            <i data-feather="chevron-down" class="text-slate-400 group-hover:text-brand-accent transition-colors"></i>
+                        </div>
+                        <div class="accordion-content">
+                            <p class="pb-6 text-slate-600 leading-relaxed">Visual dashboards transform raw numbers into actionable strategies with a single click.</p>
+                        </div>
+                    </div>
+                    <div class="accordion-item border-b border-slate-200 cursor-pointer group">
+                        <div class="py-6 flex justify-between items-center">
+                            <span class="text-xl font-medium">Team Synchronization</span>
+                            <i data-feather="chevron-down" class="text-slate-400 group-hover:text-brand-accent transition-colors"></i>
+                        </div>
+                        <div class="accordion-content">
+                            <p class="pb-6 text-slate-600 leading-relaxed">Manage permissions and roles effortlessly while maintaining enterprise-grade security.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-20 px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="glass-card p-8 rounded-3xl reveal-on-scroll">
+                        <span class="text-4xl font-light text-slate-300 mb-6 block">01</span>
+                        <h4 class="text-lg font-semibold mb-2">Intake</h4>
+                        <p class="text-slate-500 text-sm">Official form capture.</p>
+                    </div>
+                    <div class="glass-card p-8 rounded-3xl reveal-on-scroll" style="transition-delay: 0.1s;">
+                        <span class="text-4xl font-light text-slate-300 mb-6 block">02</span>
+                        <h4 class="text-lg font-semibold mb-2">Setup</h4>
+                        <p class="text-slate-500 text-sm">Secure configuration.</p>
+                    </div>
+                    <div class="glass-card p-8 rounded-3xl reveal-on-scroll" style="transition-delay: 0.2s;">
+                        <span class="text-4xl font-light text-slate-300 mb-6 block">03</span>
+                        <h4 class="text-lg font-semibold mb-2">Training</h4>
+                        <p class="text-slate-500 text-sm">Team kickoff call.</p>
+                    </div>
+                    <div class="glass-card p-8 rounded-3xl reveal-on-scroll" style="transition-delay: 0.3s;">
+                        <span class="text-4xl font-light text-slate-300 mb-6 block">04</span>
+                        <h4 class="text-lg font-semibold mb-2">Launch</h4>
+                        <p class="text-slate-500 text-sm">Live automation.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="py-32 px-6 text-center">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-4xl font-bold mb-12 reveal-on-scroll">Ready to upgrade?</h2>
+                <button onclick="navigateTo('intake')" class="bg-slate-900 text-white px-10 py-5 rounded-full text-xl font-medium hover:bg-brand-accent hover:-translate-y-1 transition-all shadow-xl reveal-on-scroll">
+                    Complete Intake Form
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <main id="intake" class="page-section">
+        <section class="min-h-screen py-24 px-6 md:px-16 flex items-center justify-center">
+            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 w-full items-center">
+                <div>
+                    <button onclick="navigateTo('home')" class="mb-8 flex items-center gap-2 text-slate-500 hover:text-black transition-colors">
+                        <i data-feather="arrow-left" class="w-4 h-4"></i> Back
+                    </button>
+                    <h2 class="text-5xl md:text-7xl font-bold tracking-tighter text-slate-900 mb-6">Let's get<br>personal.</h2>
+                    <p class="text-xl text-slate-500">Help us configure your dedicated instance.</p>
+                </div>
+
+                <div class="glass-card p-8 md:p-10 rounded-3xl shadow-xl">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2 pl-1">Work Email</label>
+                            <input type="email" placeholder="name@company.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-brand-accent transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-2 pl-1">Organization Size</label>
+                            <select class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-brand-accent transition-all appearance-none">
+                                <option>1-10 Employees</option>
+                                <option>11-50 Employees</option>
+                                <option>50+ Employees</option>
+                            </select>
+                        </div>
+                        <button onclick="alert('Form Submitted!')" class="w-full bg-slate-900 text-white py-4 rounded-xl text-lg font-medium hover:bg-brand-accent hover:shadow-lg transition-all transform hover:-translate-y-1 mt-4">
+                            Submit Request
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <main id="toolkit" class="page-section">
+        <section class="min-h-screen py-32 px-6">
+            <div class="max-w-7xl mx-auto">
+                <button onclick="navigateTo('home')" class="mb-12 flex items-center gap-2 text-slate-500 hover:text-black">
+                    <i data-feather="arrow-left" class="w-4 h-4"></i> Back
+                </button>
+                
+                <h1 class="text-5xl md:text-7xl font-bold mb-6 tracking-tight">Your Toolkit</h1>
+                <p class="text-xl text-slate-500 max-w-2xl mb-20">A collection of powerful modules designed to interact seamlessly.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="glass-card p-10 rounded-[2rem] cursor-pointer">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-8">
+                            <i data-feather="cpu" class="text-indigo-600 w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3 text-slate-800">AI Engine</h3>
+                        <p class="text-slate-500 leading-relaxed">Configure automation rules and let our neural network handle the sorting.</p>
+                    </div>
+                    <div class="glass-card p-10 rounded-[2rem] cursor-pointer">
+                        <div class="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mb-8">
+                            <i data-feather="pie-chart" class="text-pink-600 w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3 text-slate-800">Analytics</h3>
+                        <p class="text-slate-500 leading-relaxed">Real-time data visualization with exportable reports and KPI tracking.</p>
+                    </div>
+                    <div class="glass-card p-10 rounded-[2rem] cursor-pointer">
+                        <div class="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mb-8">
+                            <i data-feather="users" class="text-teal-600 w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3 text-slate-800">Team Sync</h3>
+                        <p class="text-slate-500 leading-relaxed">Granular permission management and activity logs for security.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <main id="process" class="page-section">
+        <section class="min-h-screen py-32 px-6">
+            <div class="max-w-4xl mx-auto">
+                <button onclick="navigateTo('home')" class="mb-12 flex items-center gap-2 text-slate-500 hover:text-black">
+                    <i data-feather="arrow-left" class="w-4 h-4"></i> Back
+                </button>
+                <h1 class="text-5xl md:text-7xl font-bold mb-16 text-center tracking-tight">Process</h1>
+                
+                <div class="space-y-12 relative before:content-[''] before:absolute before:left-8 md:before:left-1/2 before:top-0 before:h-full before:w-px before:bg-slate-200">
+                    
+                    <div class="relative pl-24 md:pl-0 md:flex md:justify-between md:items-center group">
+                        <div class="hidden md:block w-[45%] text-right pr-12">
+                            <h3 class="text-2xl font-bold mb-1">Discovery</h3>
+                            <p class="text-slate-500">1 Week Duration</p>
+                        </div>
+                        <div class="absolute left-4 md:left-1/2 w-8 h-8 bg-white border-2 border-slate-200 rounded-full z-10 transform md:-translate-x-1/2 flex items-center justify-center font-bold text-xs group-hover:border-brand-accent group-hover:text-brand-accent transition-colors">1</div>
+                        <div class="w-full md:w-[45%] md:pl-12">
+                            <div class="md:hidden mb-2">
+                                <h3 class="text-2xl font-bold">Discovery</h3>
+                            </div>
+                            <p class="text-slate-600">We audit your current workflow to identify bottlenecks and configure the AI parameters.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative pl-24 md:pl-0 md:flex md:justify-between md:items-center group">
+                         <div class="hidden md:block w-[45%]"></div> <div class="absolute left-4 md:left-1/2 w-8 h-8 bg-white border-2 border-slate-200 rounded-full z-10 transform md:-translate-x-1/2 flex items-center justify-center font-bold text-xs group-hover:border-brand-accent group-hover:text-brand-accent transition-colors">2</div>
+                        <div class="w-full md:w-[45%] md:text-right md:pr-12 md:order-first">
+                             <div class="md:hidden mb-2">
+                                <h3 class="text-2xl font-bold">Integration</h3>
+                            </div>
+                            <h3 class="hidden md:block text-2xl font-bold mb-1">Integration</h3>
+                            <p class="text-slate-600">Our engineers connect the DeltaByte to your existing data streams. Zero downtime.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative pl-24 md:pl-0 md:flex md:justify-between md:items-center group">
+                        <div class="hidden md:block w-[45%] text-right pr-12">
+                            <h3 class="text-2xl font-bold mb-1">Handoff</h3>
+                            <p class="text-slate-500">Ongoing Support</p>
+                        </div>
+                        <div class="absolute left-4 md:left-1/2 w-8 h-8 bg-white border-2 border-slate-200 rounded-full z-10 transform md:-translate-x-1/2 flex items-center justify-center font-bold text-xs group-hover:border-brand-accent group-hover:text-brand-accent transition-colors">3</div>
+                        <div class="w-full md:w-[45%] md:pl-12">
+                            <div class="md:hidden mb-2">
+                                <h3 class="text-2xl font-bold">Handoff</h3>
+                            </div>
+                            <p class="text-slate-600">We provide live workshops for your staff and hand over the admin keys.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-12 text-center text-sm border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center">
+            <p>&copy; 2025 DeltaByte Inc.</p>
+            <div class="flex gap-6 mt-4 md:mt-0">
+                <a href="#" class="hover:text-white transition-colors">Privacy</a>
+                <a href="#" class="hover:text-white transition-colors">Terms</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Icons
+        feather.replace();
+
+        // Mobile Menu
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('open');
+        }
+
+        // Router
+        function navigateTo(pageId) {
+            window.scrollTo(0, 0);
+            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active-page'));
+            const target = document.getElementById(pageId);
+            if(target) {
+                target.classList.add('active-page');
+                setTimeout(initScrollObserver, 100);
+            }
+        }
+
+        // Optimized Scroll Observer
+        function initScrollObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target); // Stop observing once revealed
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
+        }
+
+        document.addEventListener('DOMContentLoaded', initScrollObserver);
+    </script>
+</body>
+</html>
